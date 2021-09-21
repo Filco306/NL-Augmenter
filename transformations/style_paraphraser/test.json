@@ -4,7 +4,8 @@
       {
         "class": "StyleTransferParaphraser",
         "args" : {
-          "style" : "Shakespeare"
+          "style" : "Shakespeare",
+          "use_twostep" : false
         },
         "inputs": {
           "sentence": "This car looks fascinating"
@@ -16,7 +17,8 @@
       {
         "class": "StyleTransferParaphraser",
         "args" : {
-          "style" : "Shakespeare"
+          "style" : "Shakespeare",
+          "use_twostep" : false
         },
         "inputs": {
           "sentence": "Hi there! How are you doing today? "
@@ -28,7 +30,8 @@
       {
         "class": "StyleTransferParaphraser",
         "args" : {
-          "style" : "Shakespeare"
+          "style" : "Shakespeare",
+          "use_twostep" : false
         },
         "inputs": {
           "sentence": "Hi there, how are you doing today? "
@@ -40,7 +43,8 @@
       {
         "class": "StyleTransferParaphraser",
         "args" : {
-          "style" : "Shakespeare"
+          "style" : "Shakespeare",
+          "use_twostep" : false
         },
         "inputs": {
           "sentence": "What is going on here?"
@@ -52,7 +56,8 @@
       {
         "class": "StyleTransferParaphraser",
         "args" : {
-          "style" : "Shakespeare"
+          "style" : "Shakespeare",
+          "use_twostep" : false
         },
         "inputs": {
           "sentence": "The third person who walks into the room will be the hero."
@@ -64,7 +69,8 @@
       {
         "class": "StyleTransferParaphraser",
         "args" : {
-          "style" : "Shakespeare"
+          "style" : "Shakespeare",
+          "use_twostep" : false
         },
         "inputs": {
           "sentence": "NL-Augmenter is a very nice repository. "
@@ -77,6 +83,99 @@
         "class": "StyleTransferParaphraser",
         "args" : {
           "style" : "Shakespeare",
+          "use_twostep" : false,
+          "upper_length" : "same_5"
+        },
+        "inputs": {
+          "sentence": "William Shakespeare was an English playwright, poet, and actor, widely regarded as the greatest writer in the English language and the world's greatest dramatist. He is often called England's national poet and the 'Bard of Avon' (or simply 'the Bard'). His extant works, including collaborations, consist of some 39 plays, 154 sonnets, three long narrative poems, and a few other verses, some of uncertain authorship. His plays have been translated into every major living language and are performed more often than those of any other playwright. They also continue to be studied and reinterpreted."
+        },
+        "outputs": [{
+           "sentence": "I know that William Shakespeare was an English playwright, poet, and actor, widely esteemed as the greatest poet in the English language and the world’s greatest dramatist. He is often called England’s national poet and “Bard of Avon” (or simply “the Bard’. His extant works, Containing some 39 plays, 154 sonnets, three long narrative poems, and some other verses, Some of doubtful authorship, are as follows:— The play, The. His plays have been translated into every living tongue and are performed more oft than those of any other playwright. They are further studied and reinterpreted."
+        }]
+      },
+      {
+        "class": "StyleTransferParaphraser",
+        "args" : {
+          "style" : "Shakespeare",
+          "use_twostep" : true
+        },
+        "inputs": {
+          "sentence": "This car looks fascinating"
+        },
+        "outputs": [{
+           "sentence": "This carrion looks most wondrous."
+        }]
+      },
+      {
+        "class": "StyleTransferParaphraser",
+        "args" : {
+          "style" : "Shakespeare",
+          "use_twostep" : true
+        },
+        "inputs": {
+          "sentence": "Hi there! How are you doing today? "
+        },
+        "outputs": [{
+           "sentence": "Hail. How dost thou today?"
+        }]
+      },
+      {
+        "class": "StyleTransferParaphraser",
+        "args" : {
+          "style" : "Shakespeare",
+          "use_twostep" : true
+        },
+        "inputs": {
+          "sentence": "Hi there, how are you doing today? "
+        },
+        "outputs": [{
+           "sentence": "How dost thou today?"
+        }]
+      },
+      {
+        "class": "StyleTransferParaphraser",
+        "args" : {
+          "style" : "Shakespeare",
+          "use_twostep" : true
+        },
+        "inputs": {
+          "sentence": "What is going on here?"
+        },
+        "outputs": [{
+           "sentence": "What is this?"
+        }]
+      },
+      {
+        "class": "StyleTransferParaphraser",
+        "args" : {
+          "style" : "Shakespeare",
+          "use_twostep" : true
+        },
+        "inputs": {
+          "sentence": "The third person who walks into the room will be the hero."
+        },
+        "outputs": [{
+           "sentence": "The third that walks into the chamber shall be the Hero."
+        }]
+      },
+      {
+        "class": "StyleTransferParaphraser",
+        "args" : {
+          "style" : "Shakespeare",
+          "use_twostep" : true
+        },
+        "inputs": {
+          "sentence": "NL-Augmenter is a very nice repository. "
+        },
+        "outputs": [{
+           "sentence": "NL-Augmenter is a very good repository."
+        }]
+      },
+      {
+        "class": "StyleTransferParaphraser",
+        "args" : {
+          "style" : "Shakespeare",
+          "use_twostep" : true,
           "upper_length" : "same_5"
         },
         "inputs": {
@@ -87,5 +186,5 @@
         }]
       }
     ]
-  }
+}
 
