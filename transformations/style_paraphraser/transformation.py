@@ -72,6 +72,10 @@ class StyleTransferParaphraser(SentenceOperation):
             temperate : float
                 Sampling temperate
                 Default: 0.0
+            use_twostep : bool
+                Default: True
+                Whether to use the two-step style transfer procedure as in the original paper.
+                If False, only one model is used (which gives a lower performance. )
     """
 
     def __init__(
@@ -82,13 +86,14 @@ class StyleTransferParaphraser(SentenceOperation):
         beam_size: int = 1,
         top_p: int = 0.0,
         temperature: float = 0.0,
+        use_twostep: bool = True,
     ):
         try:
             nltk.data.find("tokenizers/punkt")
         except LookupError:
             nltk.download("punkt")
         self.style = style
-
+        self.use_twostep = use_twostep
         assert (
             style in MODELS_SUPPORTED.keys()
         ), f"Style not supported. The following styles are supported: {', '.join(list(MODELS_SUPPORTED.keys()))}"
@@ -113,23 +118,24 @@ class StyleTransferParaphraser(SentenceOperation):
         model.to(self.device)
         self.gpt2_model = model  # GPT2ParentModule(gpt2=model, device=device)
         self.tokenizer = GPT2Tokenizer.from_pretrained(model_path)
+        self.basic_model = (
+            GPT2LMHeadModel.from_pretrained(MODELS_SUPPORTED["Basic"])
+            if self.use_twostep is True and self.style != "Basic"
+            else None
+        )
+        self.basic_tokenizer = (
+            GPT2Tokenizer.from_pretrained(MODELS_SUPPORTED["Basic"])
+            if self.use_twostep is True and self.style != "Basic"
+            else None
+        )
 
     def modify_p(self, top_p):
         """Set top_p to another value"""
         self.args["top_p"] = top_p
 
-    def generate(self, sentence, top_p=None, max_outputs: int = 1):
-        """
-        Generate paraphrases for a batch of outputs - or for the same but with a top_p != 0.0
-        sentence : str
-            Sentence to paraphrase.
-        top_p : float
-            top_p sampling, between 0.0 and 1.0
-            Default None, resorting to the model's top_p value
-        max_outputs : int
-            Number of samples to generate for a sentence.
-            Note: These will be the exact same if you use a greedy sampling (top_p=0.0), so if max_outputs > 2, makes sure top_p != 0.0.
-        """
+    def _paraphrase(
+        self, sentence, use_basic: bool, top_p=None, max_outputs: int = 1
+    ):
         sent_text = nltk.sent_tokenize(sentence)
 
         contexts = [sent_text] * max_outputs
@@ -169,7 +175,9 @@ class StyleTransferParaphraser(SentenceOperation):
 
             if self.args["beam_size"] > 1:
                 output = _beam_search(
-                    model=self.gpt2_model,
+                    model=self.gpt2_model
+                    if use_basic is False
+                    else self.basic_model,
                     length=generation_length,
                     context=gpt2_sentences[:, 0:init_context_size],
                     segments=segments[:, 0:init_context_size],
@@ -179,7 +187,9 @@ class StyleTransferParaphraser(SentenceOperation):
                 )
             else:
                 output = _sample_sequence(
-                    model=self.gpt2_model,
+                    model=self.gpt2_model
+                    if use_basic is False
+                    else self.basic_model,
                     context=gpt2_sentences[:, 0:init_context_size],
                     segments=segments[:, 0:init_context_size],
                     eos_token_id=eos_token_id,
@@ -214,6 +224,43 @@ class StyleTransferParaphraser(SentenceOperation):
                 )
             to_ret.append(re.sub("!?\\??\\.+", ".", ". ".join(all_output)))
         return to_ret[:max_outputs]
+
+    def generate(self, sentence, top_p=None, max_outputs: int = 1):
+        """
+        Generate paraphrases for a batch of outputs - or for the same but with a top_p != 0.0
+        sentence : str
+            Sentence to paraphrase.
+        top_p : float
+            top_p sampling, between 0.0 and 1.0
+            Default None, resorting to the model's top_p value
+        max_outputs : int
+            Number of samples to generate for a sentence.
+            Note: These will be the exact same if you use a greedy sampling (top_p=0.0), so if max_outputs > 2, makes sure top_p != 0.0.
+        """
+        if self.basic_model is not None:
+            sentences = self._paraphrase(
+                sentence=sentence,
+                use_basic=True,
+                top_p=top_p,
+                max_outputs=max_outputs,
+            )
+            out = [
+                self._paraphrase(
+                    sentence=sentence_,
+                    use_basic=False,
+                    top_p=top_p,
+                    max_outputs=1,
+                )
+                for sentence_ in sentences
+            ]
+        else:
+            out = self._paraphrase(
+                sentence=sentence,
+                use_basic=False,
+                top_p=top_p,
+                max_outputs=max_outputs,
+            )
+        return out
 
 
 # Sample code to demonstrate usage of the this perturbation module.
