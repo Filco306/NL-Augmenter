@@ -74,6 +74,8 @@ class StyleTransferParaphraser(SentenceOperation):
                 Default: True
                 Whether to use the two-step style transfer procedure as in the original paper.
                 If False, only one model is used (which gives a lower performance. )
+                NOTE: The two-step approach loads two GPT2 models in memory, which is very heavy
+                and may cause memory issues.
     """
 
     def __init__(
@@ -100,7 +102,7 @@ class StyleTransferParaphraser(SentenceOperation):
         self.device = device
         if self.device is None:
             self.device = torch.device(
-                "cuda" if torch.cuda.is_available() else "cpu"
+                "cpu" if torch.cuda.is_available() else "cuda"
             )
         self.args["upper_length"] = upper_length
         self.args["stop_token"] = "eos" if upper_length == "eos" else None
@@ -136,6 +138,10 @@ class StyleTransferParaphraser(SentenceOperation):
     def _paraphrase(
         self, sentence, use_basic: bool, top_p=None, max_outputs: int = 1
     ):
+        """
+        Helper function to generate a paraphrase.
+        One step
+        """
         sent_text = nltk.sent_tokenize(sentence)
 
         contexts = [sent_text] * max_outputs
@@ -168,20 +174,23 @@ class StyleTransferParaphraser(SentenceOperation):
             eos_token_id = self.tokenizer.eos_token_id
 
             model = self.gpt2_model if use_basic is False else self.basic_model
-            output = model.generate(
-                input_ids=gpt2_sentences[:, 0:init_context_size],
-                max_length=gpt2_sentences.shape[1],
-                return_dict_in_generate=True,
-                eos_token_id=eos_token_id,
-                output_scores=True,
-                do_sample=self.args["top_k"] > 0 or top_p > 0.0,
-                top_k=self.args["top_k"],
-                top_p=top_p,
-                temperature=self.args["temperature"],
-                num_beams=self.args["beam_size"],
-                token_type_ids=segments[:, 0:init_context_size],
-            )
-
+            with torch.no_grad():
+                output = model.generate(
+                    input_ids=gpt2_sentences[:, 0:init_context_size],
+                    max_length=gpt2_sentences.shape[1],
+                    return_dict_in_generate=True,
+                    eos_token_id=eos_token_id,
+                    output_scores=True,
+                    do_sample=self.args["top_k"] > 0 or top_p > 0.0,
+                    top_k=self.args["top_k"],
+                    top_p=top_p,
+                    temperature=self.args["temperature"]
+                    if self.args["temperature"] > 0
+                    else None,
+                    num_beams=self.args["beam_size"],
+                    token_type_ids=segments[:, 0:init_context_size],
+                )
+            # import ipdb; ipdb.sset_trace()
             all_output = []
             for out_num in range(len(output)):
                 instance = instances[out_num]
@@ -248,7 +257,7 @@ class StyleTransferParaphraser(SentenceOperation):
 
 # Sample code to demonstrate usage of the this perturbation module.
 # This can be uncommented to be used to test the module.
-"""
+
 if __name__ == "__main__":
     import argparse
     import sys
@@ -279,4 +288,4 @@ if __name__ == "__main__":
 
 text = "William Shakespeare was an English playwright, poet, and actor, widely regarded as the greatest writer in the English language and the world's greatest dramatist. "
 nltk.download("punkt")
-sent_text = nltk.sent_tokenize(text)"""
+sent_text = nltk.sent_tokenize(text)
