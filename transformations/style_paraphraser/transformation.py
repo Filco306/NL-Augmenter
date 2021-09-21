@@ -9,8 +9,6 @@ from interfaces.SentenceOperation import SentenceOperation
 from tasks.TaskTypes import TaskType
 from transformations.style_paraphraser.paraphraser_helpers.style_paraphraser import (
     Instance,
-    _beam_search,
-    _sample_sequence,
 )
 
 """
@@ -119,7 +117,9 @@ class StyleTransferParaphraser(SentenceOperation):
         self.gpt2_model = model  # GPT2ParentModule(gpt2=model, device=device)
         self.tokenizer = GPT2Tokenizer.from_pretrained(model_path)
         self.basic_model = (
-            GPT2LMHeadModel.from_pretrained(MODELS_SUPPORTED["Basic"])
+            GPT2LMHeadModel.from_pretrained(MODELS_SUPPORTED["Basic"]).to(
+                self.device
+            )
             if self.use_twostep is True and self.style != "Basic"
             else None
         )
@@ -167,37 +167,20 @@ class StyleTransferParaphraser(SentenceOperation):
             init_context_size = instances[0].init_context_size
             eos_token_id = self.tokenizer.eos_token_id
 
-            generation_length = (
-                None
-                if self.args["stop_token"] == "eos"
-                else len(gpt2_sentences[0]) - init_context_size
+            model = self.gpt2_model if use_basic is False else self.basic_model
+            output = model.generate(
+                input_ids=gpt2_sentences[:, 0:init_context_size],
+                max_length=gpt2_sentences.shape[1],
+                return_dict_in_generate=True,
+                eos_token_id=eos_token_id,
+                output_scores=True,
+                do_sample=self.args["top_k"] > 0 or top_p > 0.0,
+                top_k=self.args["top_k"],
+                top_p=top_p,
+                temperature=self.args["temperature"],
+                num_beams=self.args["beam_size"],
+                token_type_ids=segments[:, 0:init_context_size],
             )
-
-            if self.args["beam_size"] > 1:
-                output = _beam_search(
-                    model=self.gpt2_model
-                    if use_basic is False
-                    else self.basic_model,
-                    length=generation_length,
-                    context=gpt2_sentences[:, 0:init_context_size],
-                    segments=segments[:, 0:init_context_size],
-                    eos_token_id=eos_token_id,
-                    beam_size=self.args["beam_size"],
-                    beam_search_scoring=self.args["beam_search_scoring"],
-                )
-            else:
-                output = _sample_sequence(
-                    model=self.gpt2_model
-                    if use_basic is False
-                    else self.basic_model,
-                    context=gpt2_sentences[:, 0:init_context_size],
-                    segments=segments[:, 0:init_context_size],
-                    eos_token_id=eos_token_id,
-                    length=generation_length,
-                    temperature=self.args["temperature"],
-                    top_k=self.args["top_k"],
-                    top_p=top_p or self.args["top_p"],
-                )
 
             all_output = []
             for out_num in range(len(output)):
@@ -250,7 +233,7 @@ class StyleTransferParaphraser(SentenceOperation):
                     use_basic=False,
                     top_p=top_p,
                     max_outputs=1,
-                )
+                )[0]
                 for sentence_ in sentences
             ]
         else:
@@ -265,8 +248,8 @@ class StyleTransferParaphraser(SentenceOperation):
 
 # Sample code to demonstrate usage of the this perturbation module.
 # This can be uncommented to be used to test the module.
-
-"""if __name__ == "__main__":
+"""
+if __name__ == "__main__":
     import argparse
     import sys
 
